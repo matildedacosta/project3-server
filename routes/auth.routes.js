@@ -3,6 +3,7 @@ const router = require("express").Router();
 // ℹ️ Handles password encryption
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
+const fileUploader = require("../config/cloudinary.config"); //DOWNLOAD?
 
 // How many rounds should bcrypt run the salt (default [10 - 12 rounds])
 const saltRounds = 10;
@@ -15,7 +16,7 @@ router.get("/loggedin", (req, res) => {
   res.json(req.user);
 });
 
-router.post("/signup", (req, res) => {
+router.post("/signup", fileUploader.single("image"), (req, res) => {
   const {
     image,
     fullName,
@@ -33,6 +34,32 @@ router.post("/signup", (req, res) => {
       .status(400)
       .json({ errorMessage: "Please provide your username." });
   }
+
+  if (!email) {
+    return res.status(400).json({ errorMessage: "Please provide your email." });
+  }
+
+  if (!fullName) {
+    return res.status(400).json({ errorMessage: "Please provide your name." });
+  }
+
+  if (!skills) {
+    return res
+      .status(400)
+      .json({ errorMessage: "Please provide at least one skill." });
+  }
+
+  if (!location) {
+    return res
+      .status(400)
+      .json({ errorMessage: "Please provide your location." });
+  }
+
+  /*  if (!links) {
+    return res
+      .status(400)
+      .json({ errorMessage: "Please provide at least one link to your work." });
+  } */
 
   if (password.length < 8) {
     return res.status(400).json({
@@ -66,7 +93,7 @@ router.post("/signup", (req, res) => {
       .then((hashedPassword) => {
         // Create a user and save it in the database
         return User.create({
-          image,
+          image: req.file.path,
           fullName,
           username,
           description,

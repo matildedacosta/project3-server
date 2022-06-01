@@ -9,7 +9,14 @@ const Event = require("../models/Event.model");
 router.post("/events/create", fileUploader.single("image"), (req, res, nex) => {
   const { name, image, location, date, creator, attendees } = req.body;
 
-  Event.create({ name, image, location, date, creator, attendees })
+  Event.create({
+    name,
+    image: req.file.path,
+    location,
+    date,
+    creator,
+    attendees,
+  })
     .then((event) => {
       res.status(201).json(event);
     })
