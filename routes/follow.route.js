@@ -1,31 +1,26 @@
 const router = require("express").Router();
 
 const mongoose = require("mongoose");
-const fileUploader = require("../config/cloudinary.config"); //DOWNLOAD?
 
 const User = require("../models/User.model");
 
-/* CREATE LIST OF FOLLOWING AND FOLLOWED (FIRST ADD IS POST AND THEN GET TO SHOW) */
+/* WHAT CAN YOU FIND HERE?
+- POST ROUTE TO ADD A FOLLOW (EITHER FOLLOWING OR FOLLOWERS)
+- GET ROUTES TO SEE THE FOLLOWERS AND FOLLOWINGS
+- DELETE ROUTE TO REMOVE A FOLLOWING OR FOLLOWER
+*/
 
 router.post("/add-follow/:id", (req, res, next) => {
   const { id } = req.params;
-  const { loggedUser } = req.body;
+  const { _id } = req.payload;
 
-  User.findByIdAndUpdate(
-    id,
-    { $push: { followers: loggedUser._id } },
-    { new: true }
-  )
+  User.findByIdAndUpdate(id, { $push: { followers: _id } }, { new: true })
     .then((user) => {
       res.json(user);
       return user;
     })
     .then((user) => {
-      User.findByIdAndUpdate(
-        loggedUser,
-        { $push: { following: user } },
-        { new: true }
-      );
+      User.findByIdAndUpdate(_id, { $push: { following: id } }, { new: true });
     })
     .catch((err) => {
       res.status(400).json({ message: "Invalid follow" });
@@ -42,25 +37,33 @@ router.get("/following/:id", (req, res, next) => {
     });
 });
 
-router.delete("/remove-follow/:id", (req, res, next) => {
+router.get("/followers/:id", (req, res, next) => {
   const { id } = req.params;
-  const { loggedUser } = req.body;
 
-  User.findByIdAndUpdate(
-    id,
-    { $pull: { followers: loggedUser._id } },
-    { new: true }
-  )
+  User.findById(id)
+    .populate("followers")
     .then((user) => {
       res.json(user);
-      return user;
-    })
+    });
+});
+
+router.delete("/remove-follow/:id", (req, res, next) => {
+  const { id } = req.params;
+  const { _id } = req.payload;
+
+  if (id !== _id) {
+    res.status(400).json({
+      errorMessage: "You can't remove a follow from someone who's not you.",
+    });
+    return;
+  }
+
+  User.findByIdAndUpdate(id, { $pull: { followers: _id } }, { new: true })
     .then((user) => {
-      User.findByIdAndUpdate(
-        loggedUser,
-        { $pull: { following: user } },
-        { new: true }
-      );
+      res.json(user);
+    })
+    .then(() => {
+      User.findByIdAndUpdate(_id, { $pull: { following: id } }, { new: true });
     })
     .catch((err) => {
       res.status(400).json({ message: "Invalid follow" });

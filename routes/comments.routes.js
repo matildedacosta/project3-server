@@ -1,10 +1,15 @@
 const router = require("express").Router();
 
 const mongoose = require("mongoose");
-const fileUploader = require("../config/cloudinary.config"); //DOWNLOAD?
 
 const User = require("../models/User.model");
 const Comment = require("../models/Comment.model");
+
+/* WHAT CAN YOU FIND HERE?
+DO I NEED THE GET SPECIFIC MESSAGE?
+- POST ROUTE TO ADD COMMENT 
+- DELETE ROUTE TO DELETE COMMENT
+*/
 
 router.post("/profile/:id/add-comment", async (req, res, next) => {
   try {
@@ -36,16 +41,7 @@ router.post("/profile/:id/add-comment", async (req, res, next) => {
   }
 });
 
-/* router.get("profile/:id/comments", (req, res, next) => {
-  const { id } = req.params;
-  User.findbyId(id)
-    .populate("receivedComments")
-    .then((user) => {
-      res.json(user);
-    })
-    .catch((err) => res.status(500).json({ errorMessage: error.message }));
-}); */
-
+/* 
 router.get("/comments/:id", (req, res, nex) => {
   const { id } = req.params;
   Comment.findById(id)
@@ -59,7 +55,7 @@ router.get("/comments/:id", (req, res, nex) => {
       }
       return res.status(500).json({ errorMessage: error.message });
     });
-});
+}); */
 
 router.delete("/comments/:id", (req, res, next) => {
   const { id } = req.params;
@@ -75,7 +71,7 @@ router.delete("/comments/:id", (req, res, next) => {
           .then((response) => res.json(response))
           .then((comment) => {
             User.findByIdAndUpdate(
-              id,
+              _id,
               { $pull: { receivedComments: comment._id } },
               { new: true }
             ).then((user) => {
@@ -92,7 +88,6 @@ router.delete("/comments/:id", (req, res, next) => {
           });
       }
     })
-
     .catch((err) =>
       res.status(400).json({ message: "Invalid comment supplied" })
     );
