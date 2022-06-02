@@ -22,10 +22,7 @@ const users = [
     username: "matildedacosta",
     description: "I love music!",
     email: "matildefigueirascosta@hotmail.com",
-    password: {
-      type: String,
-      required: true,
-    },
+    password: "12345678",
     location: "Setubal",
     skills: ["Artista", "Cantor(a)", "Produtor(a)", "Compositor(a)"],
     links: {
@@ -41,10 +38,7 @@ const users = [
     username: "nayrfaquira",
     description: "I love Rnb!",
     email: "nayr@faquira.com",
-    password: {
-      type: String,
-      required: true,
-    },
+    password: "12345678",
     location: "Sintra",
     skills: ["Artista", "Cantor(a)", "Produtor(a)", "Compositor(a)"],
     links: {
@@ -59,11 +53,8 @@ const users = [
     fullName: "Jorge Palma",
     username: "jorgepalma",
     description: "piano",
-    email: "lizzy@mcalpine.com",
-    password: {
-      type: String,
-      required: true,
-    },
+    email: "jorge@palma.com",
+    password: "12345678",
     location: "Lisboa",
     skills: ["Artista", "Cantor(a)", "Pianista", "Compositor(a)"],
     links: {

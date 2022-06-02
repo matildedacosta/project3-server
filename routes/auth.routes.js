@@ -1,5 +1,9 @@
 const router = require("express").Router();
 
+const jwt = require("jsonwebtoken");
+
+const { isAuthenticated } = require("../middleware/jwt.middleware");
+
 // ℹ️ Handles password encryption
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
@@ -12,18 +16,21 @@ const saltRounds = 10;
 const User = require("../models/User.model");
 
 // Require necessary (isLoggedOut and isLiggedIn) middleware in order to
-router.get("/loggedin", (req, res) => {
-  res.json(req.user);
+
+router.get("/verify", isAuthenticated, (req, res, next) => {
+  console.log(req.payload);
+
+  res.status(200).json(req.payload);
 });
 
 router.post("/signup", fileUploader.single("image"), (req, res) => {
   const {
     image,
-    fullName,
     username,
-    description,
-    email,
     password,
+    email,
+    fullName,
+    description,
     location,
     skills,
     links,
@@ -35,40 +42,19 @@ router.post("/signup", fileUploader.single("image"), (req, res) => {
       .json({ errorMessage: "Please provide your username." });
   }
 
-  if (!email) {
-    return res.status(400).json({ errorMessage: "Please provide your email." });
-  }
-
-  if (!fullName) {
-    return res.status(400).json({ errorMessage: "Please provide your name." });
-  }
-
-  if (!skills) {
-    return res
-      .status(400)
-      .json({ errorMessage: "Please provide at least one skill." });
-  }
-
-  if (!location) {
-    return res.status(400).json({ errorMessage: "Please provide a location." });
-  }
-
-  /*  if (!links) {
-    return res
-      .status(400)
-      .json({ errorMessage: "Please provide at least one link to your work." });
-  } */
-
   if (password.length < 8) {
     return res.status(400).json({
       errorMessage: "Your password needs to be at least 8 characters long.",
     });
   }
 
+  if (!email) {
+    return res.status(400).json({ errorMessage: "Please enter a valid email" });
+  }
+
   //   ! This use case is using a regular expression to control for special characters and min length
   /*
   const regex = /(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}/;
-
   if (!regex.test(password)) {
     return res.status(400).json( {
       errorMessage:
@@ -78,7 +64,7 @@ router.post("/signup", fileUploader.single("image"), (req, res) => {
   */
 
   // Search the database for a user with the username submitted in the form
-  User.findOne({ username }).then((found) => {
+  User.findOne({ email }).then((found) => {
     // If the user is found, send the message username is taken
     if (found) {
       return res.status(400).json({ errorMessage: "Username already taken." });
@@ -91,12 +77,13 @@ router.post("/signup", fileUploader.single("image"), (req, res) => {
       .then((hashedPassword) => {
         // Create a user and save it in the database
         return User.create({
-          image: req.file.path,
-          fullName,
+          /*  image: req.file.path, */
+          image,
           username,
-          description,
-          email,
           password: hashedPassword,
+          email,
+          fullName,
+          description,
           location,
           skills,
           links,
@@ -135,7 +122,7 @@ router.post("/login", (req, res, next) => {
     });
   }
 
-  // Search the database for a user with the username submitted in the form
+  // Search the database for a user with the email submitted in the form
   User.findOne({ email })
     .then((user) => {
       // If the user isn't found, send the message that user provided wrong credentials
@@ -143,13 +130,22 @@ router.post("/login", (req, res, next) => {
         return res.status(400).json({ errorMessage: "Wrong credentials." });
       }
 
-      // If user is found based on the username, check if the in putted password matches the one saved in the database
+      // If user is found based on the email, check if the in putted password matches the one saved in the database
       bcrypt.compare(password, user.password).then((isSamePassword) => {
         if (!isSamePassword) {
           return res.status(400).json({ errorMessage: "Wrong credentials." });
         }
 
-        return res.json(user);
+        const { _id, email } = user;
+
+        const payload = { _id, email };
+
+        const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
+          algorithm: "HS256",
+          expiresIn: "6h",
+        });
+
+        return res.status(200).json({ authToken });
       });
     })
 

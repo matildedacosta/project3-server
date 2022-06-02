@@ -19,7 +19,7 @@ const userSchema = new Schema(
     },
     description: {
       type: String,
-      default: "",
+      default: "Let's jam!",
     },
     email: {
       type: String,
