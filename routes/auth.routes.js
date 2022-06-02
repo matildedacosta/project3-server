@@ -3,7 +3,7 @@ const router = require("express").Router();
 // ℹ️ Handles password encryption
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
-const fileUploader = require("../config/cloudinary.config"); //DOWNLOAD?
+const fileUploader = require("../config/cloudinary.config");
 
 // How many rounds should bcrypt run the salt (default [10 - 12 rounds])
 const saltRounds = 10;
@@ -50,9 +50,7 @@ router.post("/signup", fileUploader.single("image"), (req, res) => {
   }
 
   if (!location) {
-    return res
-      .status(400)
-      .json({ errorMessage: "Please provide your location." });
+    return res.status(400).json({ errorMessage: "Please provide a location." });
   }
 
   /*  if (!links) {
