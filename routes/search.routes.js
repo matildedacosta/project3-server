@@ -6,14 +6,17 @@ const fileUploader = require("../config/cloudinary.config"); //DOWNLOAD?
 const User = require("../models/User.model");
 const Event = require("../models/Event.model");
 
-/* WORK ON TYPE OF EVENT ON MODEL! AND CHECK IF THIS IS CORRECT*/
+/* 
+WORK ON TYPE OF EVENT ON MODEL! AND CHECK IF THIS IS CORRECT.
+ALSO MAKE THE LINKS FOR THE USER MODEL REQUIRED!
+*/
 
 let filteredEvents;
 
-router.post("/events/filter", (req, res, next) => {
+router.post("/events/filter", async (req, res, next) => {
   const { name, typeOfEvent, location } = req.body;
 
-  Event.find({}).then((allEvents) => {
+  let events = await Event.find({}).then((allEvents) => {
     filteredEvents = allEvents.filter((event) => {
       return (
         name === event.name ||
@@ -22,6 +25,7 @@ router.post("/events/filter", (req, res, next) => {
       );
     });
   });
+  res.json(events);
 });
 
 router.get("/events/filter", (req, res, next) => {

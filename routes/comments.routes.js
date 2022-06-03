@@ -41,56 +41,34 @@ router.post("/profile/:id/add-comment", async (req, res, next) => {
   }
 });
 
-/* 
-router.get("/comments/:id", (req, res, nex) => {
-  const { id } = req.params;
-  Comment.findById(id)
-    .populate("commentBy")
-    .then((comment) => {
-      res.json(comment);
-    })
-    .catch((err) => {
-      if (error instanceof mongoose.Error.ValidationError) {
-        return res.status(400).json({ errorMessage: error.message });
-      }
-      return res.status(500).json({ errorMessage: error.message });
-    });
-}); */
+router.delete("/comments/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { _id } = req.payload;
 
-router.delete("/comments/:id", (req, res, next) => {
-  const { id } = req.params;
-  const { _id } = req.payload;
-
-  Comment.findById(id)
-    .then((comment) => {
+    let checkCommentOwner = await Comment.findById(id).then((comment) => {
       if (comment.commentBy !== _id) {
         res.status(400).json({ errorMessage: "Not the author of the comment" });
         return;
-      } else {
-        Comment.findByIdAndRemove(id)
-          .then((response) => res.json(response))
-          .then((comment) => {
-            User.findByIdAndUpdate(
-              _id,
-              { $pull: { receivedComments: comment._id } },
-              { new: true }
-            ).then((user) => {
-              res.json(user);
-            });
-            return comment;
-          })
-          .then(() => {
-            User.findByIdAndUpdate(
-              commentBy,
-              { $pull: { myComments: comment._id } },
-              { new: true }
-            );
-          });
       }
-    })
-    .catch((err) =>
-      res.status(400).json({ message: "Invalid comment supplied" })
+    });
+
+    let deletedComment = await Comment.findByIdAndRemove(id);
+    let deleteReceivedCommentfromUser = await User.findOneAndUpdate(
+      { $in: { receivedComments: deletedComment._id } },
+      { $pull: { receivedComments: deletedComment._id } },
+      { new: true }
     );
+
+    let deletedCommentFromUser = User.findByIdAndUpdate(
+      deletedComment.commentBy,
+      { $pull: { myComments: deletedComment._id } },
+      { new: true }
+    );
+    res.json(deletedComment);
+  } catch (err) {
+    res.status(400).json({ message: "Invalid comment supplied" });
+  }
 });
 
 module.exports = router;

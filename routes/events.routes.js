@@ -18,33 +18,38 @@ const Event = require("../models/Event.model");
 
 /* ADD CONDITIONAL: YOU CAN ONLY EDIT THE EVENT IF YOU'RE THE CREATOR! */
 
-router.post("/events/create", fileUploader.single("image"), (req, res, nex) => {
-  const { name, location, date, creator, attendees, image } = req.body;
+router.post(
+  "/events/create",
+  fileUploader.single("image"),
+  async (req, res, nex) => {
+    try {
+      const { name, location, date, typeOfEvent, creator, attendees, image } =
+        req.body;
+      const { _id } = req.payload;
 
-  Event.create({
-    name,
-    image,
-    /* image: req.file.path, */
-    location,
-    date,
-    creator,
-  }).then((event) => {
-    return User.findByIdAndUpdate(
-      creator,
-      { $push: { myEvents: event._id } },
-      { new: true }
-    )
-      .then((user) => {
-        res.json(user);
-      })
-      .catch((error) => {
-        if (error instanceof mongoose.Error.ValidationError) {
-          return res.status(400).json({ errorMessage: error.message });
-        }
-        return res.status(500).json({ errorMessage: error.message });
+      let newEvent = await Event.create({
+        name,
+        image,
+        /* image: req.file.path, */
+        location,
+        typeOfEvent,
+        date,
+        creator: _id,
       });
-  });
-});
+      let creatorMyEvents = await User.findByIdAndUpdate(
+        creator,
+        { $push: { myEvents: newEvent._id } },
+        { new: true }
+      );
+      res.json(newEvent);
+    } catch (error) {
+      if (error instanceof mongoose.Error.ValidationError) {
+        return res.status(400).json({ errorMessage: error.message });
+      }
+      return res.status(500).json({ errorMessage: error.message });
+    }
+  }
+);
 
 router.put(
   "/events/:eventId",
@@ -98,6 +103,8 @@ router.put(
   }
 );
 
+//SEE ALL EVENTS
+
 router.get("/events", (req, res, next) => {
   Event.find()
     .populate("creator")
@@ -107,6 +114,7 @@ router.get("/events", (req, res, next) => {
     .catch((err) => res.status(500).json({ errorMessage: error.message }));
 });
 
+//ATTEND AN EVENT
 router.post("/events/:eventId/attend", (req, res, next) => {
   const { eventId } = req.params;
   const { _id } = req.payload;
@@ -127,19 +135,7 @@ router.post("/events/:eventId/attend", (req, res, next) => {
     });
 });
 
-router.get("/user-events/:id", (req, res, next) => {
-  const { id } = req.params;
-
-  User.findById(id)
-    .populate("myEvents")
-    .then((user) => {
-      res.json(user);
-    })
-    .catch((err) =>
-      res.status(400).json({ message: "Invalid event supplied" })
-    );
-});
-
+//SEE SPECIFIC EVENT
 router.get("/events/:id", (req, res, nex) => {
   const { id } = req.params;
 
@@ -156,6 +152,21 @@ router.get("/events/:id", (req, res, nex) => {
     });
 });
 
+//SEE USER'S EVENTS
+router.get("/user-events/:id", (req, res, next) => {
+  const { id } = req.params;
+
+  User.findById(id)
+    .populate("myEvents")
+    .then((user) => {
+      res.json(user);
+    })
+    .catch((err) =>
+      res.status(400).json({ message: "Invalid event supplied" })
+    );
+});
+
+//DELETE EVENT
 router.delete("/events/:eventId", (req, res, next) => {
   const { eventId } = req.params;
   const { _id } = req.payload;
