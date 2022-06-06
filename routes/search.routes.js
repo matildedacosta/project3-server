@@ -40,7 +40,7 @@ let filteredUsers;
 router.post("/users/filter", (req, res, next) => {
   const { name, skills, location } = req.body;
 
-  Event.find({}).then((allUsers) => {
+  let users = User.find({}).then((allUsers) => {
     filteredUsers = allUsers.filter((user) => {
       return (
         name === user.name ||
@@ -49,6 +49,7 @@ router.post("/users/filter", (req, res, next) => {
       );
     });
   });
+  res.json(users);
 });
 
 router.get("/users/filter", (req, res, next) => {

@@ -10,21 +10,29 @@ const User = require("../models/User.model");
 - DELETE ROUTE TO REMOVE A FOLLOWING OR FOLLOWER
 */
 
-router.post("/add-follow/:id", (req, res, next) => {
-  const { id } = req.params;
-  const { _id } = req.payload;
+router.post("/add-follow/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { _id } = req.payload;
 
-  User.findByIdAndUpdate(id, { $push: { followers: _id } }, { new: true })
-    .then((user) => {
-      res.json(user);
-      return user;
-    })
-    .then((user) => {
-      User.findByIdAndUpdate(_id, { $push: { following: id } }, { new: true });
-    })
-    .catch((err) => {
-      res.status(400).json({ message: "Invalid follow" });
+    let checkIfFollows = await User.findById(_id).then((user) => {
+      if (user.following.includes(id)) return;
     });
+
+    let follow = await User.findByIdAndUpdate(
+      id,
+      { $push: { followers: _id } },
+      { new: true }
+    );
+    let beFollowed = await User.findByIdAndUpdate(
+      _id,
+      { $push: { following: id } },
+      { new: true }
+    );
+    res.json(beFollowed);
+  } catch (error) {
+    res.status(400).json({ message: "Invalid follow" });
+  }
 });
 
 router.get("/following/:id", (req, res, next) => {

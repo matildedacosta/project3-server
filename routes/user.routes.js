@@ -61,8 +61,7 @@ router.put("/users/:id", fileUploader.single("image"), (req, res, next) => {
   User.findByIdAndUpdate(
     id,
     {
-      /*  image: req.file.path, */
-      image,
+      image: req.file.path,
       username,
       email,
       fullName,

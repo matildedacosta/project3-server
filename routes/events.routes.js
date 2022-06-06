@@ -36,8 +36,9 @@ router.post(
         date,
         creator: _id,
       });
+
       let creatorMyEvents = await User.findByIdAndUpdate(
-        creator,
+        _id,
         { $push: { myEvents: newEvent._id } },
         { new: true }
       );
@@ -60,11 +61,12 @@ router.put(
     const { _id } = req.payload;
 
     Event.findById(eventId).then((event) => {
-      if (event.creator !== _id) {
+      if (event.creator != _id) {
         res.status(400).json({ errorMessage: "Not the creator of the event" });
         return;
       }
     });
+
     if (req.file) {
       Event.findByIdAndUpdate(
         eventId,
@@ -115,24 +117,34 @@ router.get("/events", (req, res, next) => {
 });
 
 //ATTEND AN EVENT
-router.post("/events/:eventId/attend", (req, res, next) => {
-  const { eventId } = req.params;
-  const { _id } = req.payload;
+router.post("/events/:eventId/attend", async (req, res, next) => {
+  try {
+    const { eventId } = req.params;
+    const { _id } = req.payload;
 
-  Event.findByIdAndUpdate(eventId, { $push: { attendees: _id } }, { new: true })
-    .then(() => {
-      User.findByIdAndUpdate(
-        _id,
-        { $push: { myEvents: eventId } },
-        { new: true }
-      );
-    })
-    .catch((err) => {
-      if (error instanceof mongoose.Error.ValidationError) {
-        return res.status(400).json({ errorMessage: error.message });
-      }
-      return res.status(500).json({ errorMessage: error.message });
+    let checkIfInMyEvents = await User.findById(_id).then((user) => {
+      if (user.myEvents.includes(eventId)) return;
     });
+
+    let eventWithAttendee = await Event.findByIdAndUpdate(
+      eventId,
+      { $push: { attendees: _id } },
+      { new: true }
+    );
+
+    let updateMyEvents = await User.findByIdAndUpdate(
+      _id,
+      { $push: { myEvents: eventId } },
+      { new: true }
+    );
+
+    res.json(eventWithAttendee);
+  } catch (err) {
+    if (error instanceof mongoose.Error.ValidationError) {
+      return res.status(400).json({ errorMessage: error.message });
+    }
+    return res.status(500).json({ errorMessage: error.message });
+  }
 });
 
 //SEE SPECIFIC EVENT
@@ -158,12 +170,43 @@ router.get("/user-events/:id", (req, res, next) => {
 
   User.findById(id)
     .populate("myEvents")
+    .populate({
+      path: "myEvents",
+      populate: { path: "creator attendees" },
+    })
     .then((user) => {
       res.json(user);
     })
     .catch((err) =>
       res.status(400).json({ message: "Invalid event supplied" })
     );
+});
+
+//Remove Event from list
+router.delete("/my-events/:eventId", async (req, res, next) => {
+  try {
+    const { eventId } = req.params;
+    const { _id } = req.payload;
+
+    let eventWithoutAttendee = await Event.findByIdAndUpdate(
+      eventId,
+      { $pull: { attendees: _id } },
+      { new: true }
+    );
+
+    let updateMyEvents = await User.findByIdAndUpdate(
+      _id,
+      { $pull: { myEvents: eventId } },
+      { new: true }
+    );
+
+    res.json(eventWithoutAttendee);
+  } catch (err) {
+    if (error instanceof mongoose.Error.ValidationError) {
+      return res.status(400).json({ errorMessage: error.message });
+    }
+    return res.status(500).json({ errorMessage: error.message });
+  }
 });
 
 //DELETE EVENT

@@ -25,7 +25,6 @@ router.get("/verify", isAuthenticated, (req, res, next) => {
 
 router.post("/signup", fileUploader.single("image"), (req, res) => {
   const {
-    image,
     username,
     password,
     email,
@@ -77,8 +76,7 @@ router.post("/signup", fileUploader.single("image"), (req, res) => {
       .then((hashedPassword) => {
         // Create a user and save it in the database
         return User.create({
-          /*  image: req.file.path, */
-          image,
+          image: req.file.path,
           username,
           password: hashedPassword,
           email,
@@ -136,9 +134,9 @@ router.post("/login", (req, res, next) => {
           return res.status(400).json({ errorMessage: "Wrong credentials." });
         }
 
-        const { _id, email } = user;
+        const { _id, username, email } = user;
 
-        const payload = { _id, email };
+        const payload = { _id, email, username };
 
         const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
           algorithm: "HS256",
