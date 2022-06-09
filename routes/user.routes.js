@@ -57,11 +57,11 @@ router.put("/users/:id", fileUploader.single("image"), (req, res, next) => {
     });
     return;
   }
-
+  /*  if (req.file) */
   User.findByIdAndUpdate(
     id,
     {
-      image: req.file.path,
+      image,
       username,
       email,
       fullName,

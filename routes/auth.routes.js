@@ -25,6 +25,7 @@ router.get("/verify", isAuthenticated, (req, res, next) => {
 
 router.post("/signup", fileUploader.single("image"), (req, res) => {
   const {
+    image,
     username,
     password,
     email,
@@ -74,18 +75,31 @@ router.post("/signup", fileUploader.single("image"), (req, res) => {
       .genSalt(saltRounds)
       .then((salt) => bcrypt.hash(password, salt))
       .then((hashedPassword) => {
-        // Create a user and save it in the database
-        return User.create({
-          image: req.file.path,
-          username,
-          password: hashedPassword,
-          email,
-          fullName,
-          description,
-          location,
-          skills,
-          links,
-        });
+        if (req.file) {
+          // Create a user and save it in the database
+          return User.create({
+            image: req.file.path,
+            username,
+            password: hashedPassword,
+            email,
+            fullName,
+            description,
+            location,
+            skills,
+            links,
+          });
+        } else {
+          return User.create({
+            username,
+            password: hashedPassword,
+            email,
+            fullName,
+            description,
+            location,
+            skills,
+            links,
+          });
+        }
       })
       .then((user) => {
         res.status(201).json(user);

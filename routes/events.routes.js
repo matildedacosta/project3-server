@@ -18,24 +18,58 @@ const Event = require("../models/Event.model");
 
 /* ADD CONDITIONAL: YOU CAN ONLY EDIT THE EVENT IF YOU'RE THE CREATOR! */
 
+router.post("/upload", fileUploader.single("image"), (req, res, next) => {
+  if (!req.file) {
+    next(new Error("No file uploaded!"));
+    return;
+  }
+
+  // Get the URL of the uploaded file and send it as a response.
+  // 'fileUrl' can be any name, just make sure you remember to use the same when accessing it on the frontend
+
+  res.json({ fileUrl: req.file.path });
+});
+
 router.post(
   "/events/create",
   fileUploader.single("image"),
   async (req, res, nex) => {
     try {
-      const { name, location, date, typeOfEvent, creator, attendees, image } =
-        req.body;
+      const {
+        name,
+        location,
+        date,
+        typeOfEvent,
+        creator,
+        attendees,
+        image,
+        description,
+      } = req.body;
       const { _id } = req.payload;
 
-      let newEvent = await Event.create({
-        name,
-        image,
-        /* image: req.file.path, */
-        location,
-        typeOfEvent,
-        date,
-        creator: _id,
-      });
+      let newEvent;
+      if (req.file) {
+        newEvent = await Event.create({
+          name,
+          /* image, */
+          description,
+          image: req.file.path,
+          location,
+          typeOfEvent,
+          date,
+          creator: _id,
+        });
+      } else {
+        newEvent = await Event.create({
+          name,
+          description,
+          image,
+          location,
+          typeOfEvent,
+          date,
+          creator: _id,
+        });
+      }
 
       let creatorMyEvents = await User.findByIdAndUpdate(
         _id,
@@ -44,6 +78,7 @@ router.post(
       );
       res.json(newEvent);
     } catch (error) {
+      console.log(error);
       if (error instanceof mongoose.Error.ValidationError) {
         return res.status(400).json({ errorMessage: error.message });
       }
@@ -56,7 +91,8 @@ router.put(
   "/events/:eventId",
   fileUploader.single("image"),
   (req, res, nex) => {
-    const { name, location, date, creator, attendees, image } = req.body;
+    const { name, location, date, creator, attendees, image, description } =
+      req.body;
     const { eventId } = req.params;
     const { _id } = req.payload;
 
@@ -72,8 +108,8 @@ router.put(
         eventId,
         {
           name,
-          image,
-          /* image: req.file.path, */
+          image: req.file.path,
+          description,
           location,
           date,
           creator,
@@ -90,7 +126,7 @@ router.put(
         {
           name,
           image,
-          /*  image: req.file.path, */
+          description,
           location,
           date,
           creator,
@@ -122,9 +158,11 @@ router.post("/events/:eventId/attend", async (req, res, next) => {
     const { eventId } = req.params;
     const { _id } = req.payload;
 
-    let checkIfInMyEvents = await User.findById(_id).then((user) => {
-      if (user.myEvents.includes(eventId)) return;
-    });
+    console.log("_________", req.payload);
+
+    let user = await User.findById(_id);
+    console.log(user);
+    if (user.myEvents.includes(eventId)) res.status(400);
 
     let eventWithAttendee = await Event.findByIdAndUpdate(
       eventId,
@@ -139,7 +177,8 @@ router.post("/events/:eventId/attend", async (req, res, next) => {
     );
 
     res.json(eventWithAttendee);
-  } catch (err) {
+  } catch (error) {
+    console.log(error);
     if (error instanceof mongoose.Error.ValidationError) {
       return res.status(400).json({ errorMessage: error.message });
     }
@@ -183,7 +222,7 @@ router.get("/user-events/:id", (req, res, next) => {
 });
 
 //Remove Event from list
-router.delete("/my-events/:eventId", async (req, res, next) => {
+router.put("/my-events/:eventId", async (req, res, next) => {
   try {
     const { eventId } = req.params;
     const { _id } = req.payload;
@@ -201,7 +240,7 @@ router.delete("/my-events/:eventId", async (req, res, next) => {
     );
 
     res.json(eventWithoutAttendee);
-  } catch (err) {
+  } catch (error) {
     if (error instanceof mongoose.Error.ValidationError) {
       return res.status(400).json({ errorMessage: error.message });
     }
@@ -212,10 +251,11 @@ router.delete("/my-events/:eventId", async (req, res, next) => {
 //DELETE EVENT
 router.delete("/events/:eventId", (req, res, next) => {
   const { eventId } = req.params;
+  console.log("______________________________DELETE", req.params);
   const { _id } = req.payload;
 
   Event.findById(eventId).then((event) => {
-    if (event.creator !== _id) {
+    if (event.creator != _id) {
       res.status(400).json({ errorMessage: "Not the creator of the event" });
       return;
     } else {

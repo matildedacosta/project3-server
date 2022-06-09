@@ -15,9 +15,8 @@ router.post("/add-follow/:id", async (req, res, next) => {
     const { id } = req.params;
     const { _id } = req.payload;
 
-    let checkIfFollows = await User.findById(_id).then((user) => {
-      if (user.following.includes(id)) return;
-    });
+    let checkIfFollows = await User.findById(_id);
+    if (checkIfFollows.following.includes(id)) return;
 
     let follow = await User.findByIdAndUpdate(
       id,
@@ -55,27 +54,25 @@ router.get("/followers/:id", (req, res, next) => {
     });
 });
 
-router.delete("/remove-follow/:id", (req, res, next) => {
+router.put("/remove-follow/:id", async (req, res, next) => {
   const { id } = req.params;
   const { _id } = req.payload;
 
-  if (id !== _id) {
-    res.status(400).json({
-      errorMessage: "You can't remove a follow from someone who's not you.",
-    });
-    return;
+  try {
+    let updateFriend = await User.findByIdAndUpdate(
+      id,
+      { $pull: { followers: _id } },
+      { new: true }
+    );
+    let updateUser = await User.findByIdAndUpdate(
+      _id,
+      { $pull: { following: id } },
+      { new: true }
+    );
+    res.status(200);
+  } catch (err) {
+    res.status(400).json({ message: "Invalid follow" });
   }
-
-  User.findByIdAndUpdate(id, { $pull: { followers: _id } }, { new: true })
-    .then((user) => {
-      res.json(user);
-    })
-    .then(() => {
-      User.findByIdAndUpdate(_id, { $pull: { following: id } }, { new: true });
-    })
-    .catch((err) => {
-      res.status(400).json({ message: "Invalid follow" });
-    });
 });
 
 module.exports = router;

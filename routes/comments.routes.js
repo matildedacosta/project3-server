@@ -47,7 +47,7 @@ router.delete("/comments/:id", async (req, res, next) => {
     const { _id } = req.payload;
 
     let checkCommentOwner = await Comment.findById(id).then((comment) => {
-      if (comment.commentBy !== _id) {
+      if (comment.commentBy != _id) {
         res.status(400).json({ errorMessage: "Not the author of the comment" });
         return;
       }
